@@ -1,0 +1,74 @@
+---
+title: "Deployment Diagram — Kittygram под docker-compose"
+config:
+  flowchart:
+    htmlLabels: false
+    curve: linear
+    nodeSpacing: 40
+    rankSpacing: 55
+  themeVariables:
+    fontFamily: "Times New Roman, serif"
+    fontSize: "14px"
+---
+flowchart TB
+    %% Внешний клиент
+    Client(["💻 Клиент — браузер / Postman / curl"])
+
+    %% Хост-машина
+    subgraph HOST ["Хост (Linux / Windows + Docker Engine 27)"]
+        direction TB
+
+        ENV[/".env: SECRET_KEY, POSTGRES_*"/]
+
+        subgraph NET ["Docker network: kitty_default"]
+            direction TB
+
+            subgraph C_NGINX ["Контейнер kittygram_nginx — nginx:1.25-alpine (профиль with-nginx)"]
+                NGINX["Nginx 1.25, порт 80"]
+            end
+
+            subgraph C_BACK ["Контейнер kittygram_backend — kitty-backend (python:3.12-slim)"]
+                direction TB
+                GUNICORN["Gunicorn, порт 8000<br/>(3 workers)"]
+                DJANGO["Django 4.2 + DRF 3.14<br/>Djoser / JWT, drf-spectacular, whitenoise"]
+                GUNICORN --> DJANGO
+            end
+
+            subgraph C_DB ["Контейнер kittygram_db — postgres:16-alpine"]
+                POSTGRES["PostgreSQL 16, порт 5432"]
+            end
+        end
+
+        subgraph VOLS ["Docker volumes"]
+            direction LR
+            V_STATIC[("static_volume")]
+            V_MEDIA[("media_volume")]
+            V_PG[("pg_data")]
+        end
+    end
+
+    %% Связи рантайма
+    Client -->|"HTTP :80"| NGINX
+    NGINX -->|"HTTP :8000 (proxy_pass)"| GUNICORN
+    DJANGO -->|"TCP :5432"| POSTGRES
+
+    %% Маунт томов
+    NGINX --- V_STATIC
+    NGINX --- V_MEDIA
+    DJANGO --- V_STATIC
+    DJANGO --- V_MEDIA
+    POSTGRES --- V_PG
+
+    %% Конфигурация
+    ENV -.->|"env_file"| C_BACK
+    ENV -.->|"env_file"| C_DB
+
+    %% Стили
+    classDef client fill:#e8f1ff,stroke:#3b6fd1,stroke-width:1.5px,color:#1a1a1a
+    classDef cont fill:#fff8e6,stroke:#c79a16,stroke-width:1.2px,color:#1a1a1a
+    classDef vol fill:#f0eaff,stroke:#7e5dd1,stroke-width:1px,color:#1a1a1a
+    classDef envcfg fill:#eafff0,stroke:#3a9b5a,stroke-width:1px,color:#1a1a1a
+    class Client client
+    class NGINX,GUNICORN,DJANGO,POSTGRES cont
+    class V_PG,V_STATIC,V_MEDIA vol
+    class ENV envcfg

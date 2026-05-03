@@ -1,0 +1,47 @@
+---
+title: "Use Case Diagram — Расширение «Мини-чат по заявкам»"
+config:
+  flowchart:
+    htmlLabels: false
+    curve: linear
+    nodeSpacing: 30
+    rankSpacing: 80
+  themeVariables:
+    fontFamily: "Times New Roman, serif"
+    fontSize: "14px"
+---
+flowchart LR
+    %% Акторы слева
+    Guest(["👤 Гость<br/>(не авторизован)"])
+    Organizer(["👤 Организатор<br/>ивента"])
+    Applicant(["👤 Заявитель"])
+
+    %% Граница системы
+    subgraph SYS ["Серверная часть Kittygram (REST API) — расширение «Мини-чат по заявкам»"]
+        direction TB
+        UC7(("Просмотр списка<br/>кото-ивентов"))
+        UC8(("Создание<br/>кото-ивента"))
+        UC10(("Просмотр заявок<br/>на свой ивент"))
+        UC11(("Одобрить /<br/>отклонить заявку"))
+        UC9(("Подача заявки<br/>на участие"))
+        UC12(("Отозвать<br/>свою заявку"))
+        UC13(("Переписка<br/>в диалоге"))
+        UC14(("Отметить сообщение<br/>прочитанным"))
+    end
+
+    %% Связи
+    Guest --> UC7
+    Organizer --> UC8
+    Organizer --> UC10
+    Organizer --> UC11
+    Organizer --> UC13
+    Applicant --> UC9
+    Applicant --> UC12
+    Applicant --> UC13
+    Applicant --> UC14
+
+    %% Стили
+    classDef actor fill:#e8f1ff,stroke:#3b6fd1,stroke-width:1.5px,color:#1a1a1a
+    classDef ucChat fill:#ffeacc,stroke:#d97706,stroke-width:1px,color:#1a1a1a
+    class Guest,Organizer,Applicant actor
+    class UC7,UC8,UC9,UC10,UC11,UC12,UC13,UC14 ucChat

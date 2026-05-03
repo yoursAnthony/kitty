@@ -202,7 +202,7 @@ DOCS = {
         'work_kind': 'Курсовая работа',
         'topic': 'Проектирование и реализация серверной части проекта Kittygram '
                  'для поддержки пользовательского сценария «Мини-чат по заявкам»',
-        'cut_marker': lambda t: t.startswith('Введение') or t.startswith('1.'),
+        'cut_marker': lambda t: t.upper().startswith('СОДЕРЖАНИЕ'),
     },
 }
 

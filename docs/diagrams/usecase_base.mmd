@@ -1,0 +1,46 @@
+---
+title: "Use Case Diagram — Базовый Kittygram"
+config:
+  flowchart:
+    htmlLabels: false
+    curve: linear
+    nodeSpacing: 30
+    rankSpacing: 80
+  themeVariables:
+    fontFamily: "Times New Roman, serif"
+    fontSize: "14px"
+---
+flowchart LR
+    %% Акторы слева
+    Guest(["👤 Гость<br/>(не авторизован)"])
+    User(["👤 Пользователь<br/>(зарегистрирован)"])
+    Admin(["👤 Администратор"])
+
+    %% Граница системы
+    subgraph SYS ["Серверная часть Kittygram (REST API) — базовая часть"]
+        direction TB
+        UC3(("Просмотр<br/>списка котов"))
+        UC1(("Регистрация"))
+        UC2(("Вход<br/>(получить JWT)"))
+        UC4(("Создание<br/>профиля кота"))
+        UC5(("Загрузка<br/>фото кота"))
+        UC6(("Просмотр<br/>достижений<br/>и тегов"))
+        UC15(("Модерация<br/>достижений"))
+    end
+
+    %% Связи
+    Guest --> UC3
+    User --> UC1
+    User --> UC2
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    Admin --> UC15
+
+    %% Стили
+    classDef actor fill:#e8f1ff,stroke:#3b6fd1,stroke-width:1.5px,color:#1a1a1a
+    classDef ucBase fill:#fff8e6,stroke:#c79a16,stroke-width:1px,color:#1a1a1a
+    classDef ucAdmin fill:#eafff0,stroke:#3a9b5a,stroke-width:1px,color:#1a1a1a
+    class Guest,User,Admin actor
+    class UC1,UC2,UC3,UC4,UC5,UC6 ucBase
+    class UC15 ucAdmin
