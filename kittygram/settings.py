@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
 
     'cats.apps.CatsConfig',
+    'events.apps.EventsConfig',
 ]
 
 MIDDLEWARE = [

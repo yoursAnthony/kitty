@@ -11,6 +11,7 @@ from drf_spectacular.views import (
 
 api_v1_patterns = [
     path('', include('cats.urls')),
+    path('', include('events.urls')),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
 ]

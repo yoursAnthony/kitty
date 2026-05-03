@@ -1,0 +1,275 @@
+{
+  "info": {
+    "name": "Kittygram Creative — events + applications + chat",
+    "description": "Учебная коллекция для проверки творческого расширения Kittygram: кото-ивенты, заявки на участие, диалог по заявке, кастомные actions set_status и mark_read.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "9c2f1b4a-7c3e-4a2a-9b8b-creativexx0001"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "alice_token", "value": "", "type": "string" },
+    { "key": "bob_token", "value": "", "type": "string" },
+    { "key": "charlie_token", "value": "", "type": "string" },
+    { "key": "event_id", "value": "", "type": "string" },
+    { "key": "application_id", "value": "", "type": "string" },
+    { "key": "dialog_id", "value": "", "type": "string" },
+    { "key": "alice_message_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth: alice (organizer) JWT",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/auth/jwt/create/", "host": ["{{base_url}}"], "path": ["api","v1","auth","jwt","create",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"username\": \"alice\",\n    \"password\": \"P@ssw0rd!2026Long\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('JWT 200', () => pm.response.to.have.status(200));",
+        "const tokens = pm.response.json();",
+        "pm.collectionVariables.set('alice_token', tokens.access);"
+      ] } }]
+    },
+    {
+      "name": "02. Auth: bob (applicant) JWT",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/auth/jwt/create/", "host": ["{{base_url}}"], "path": ["api","v1","auth","jwt","create",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"username\": \"bob\",\n    \"password\": \"P@ssw0rd!2026Long\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('JWT 200', () => pm.response.to.have.status(200));",
+        "const tokens = pm.response.json();",
+        "pm.collectionVariables.set('bob_token', tokens.access);"
+      ] } }]
+    },
+    {
+      "name": "03. Events: Create event (alice)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{alice_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/events/", "host": ["{{base_url}}"], "path": ["api","v1","events",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"title\": \"Фотосессия в парке Горького\",\n    \"description\": \"Будем фотографировать котов в осенней листве. Профессиональный фотограф.\",\n    \"location\": \"Москва, Парк Горького, у Главного входа\",\n    \"starts_at\": \"2026-10-18T16:00:00Z\",\n    \"ends_at\": \"2026-10-18T19:00:00Z\",\n    \"capacity\": 5\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Event created (201)', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('event_id', pm.response.json().id);"
+      ] } }]
+    },
+    {
+      "name": "04. Events: Public list with search and ordering",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/v1/events/?search=парк&ordering=-starts_at",
+          "host": ["{{base_url}}"], "path": ["api","v1","events",""],
+          "query": [
+            { "key": "search", "value": "парк" },
+            { "key": "ordering", "value": "-starts_at" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "05. Applications: bob applies with Мурзик (cat_id=3)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bob_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/applications/", "host": ["{{base_url}}"], "path": ["api","v1","applications",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"event\": {{event_id}},\n    \"cat\": 3,\n    \"message_text\": \"Привет! Хочу прийти со своим Мурзиком, ему 8 лет, очень фотогеничный.\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Application created (201)', () => pm.response.to.have.status(201));",
+        "const resp = pm.response.json();",
+        "pm.collectionVariables.set('application_id', resp.id);",
+        "pm.collectionVariables.set('dialog_id', resp.dialog_id);",
+        "pm.test('Dialog auto-created', () => pm.expect(resp.dialog_id).to.be.a('number'));"
+      ] } }]
+    },
+    {
+      "name": "06. Applications: bob applies with foreign cat → 400 (negative)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bob_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/applications/", "host": ["{{base_url}}"], "path": ["api","v1","applications",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"event\": {{event_id}},\n    \"cat\": 1,\n    \"message_text\": \"Можно?\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Validation error (400)', () => pm.response.to.have.status(400));",
+        "pm.test('Error message about foreign cat', () => pm.expect(pm.response.text()).to.include('cat'));"
+      ] } }]
+    },
+    {
+      "name": "07. Applications: alice on her own event → 400 (negative)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{alice_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/applications/", "host": ["{{base_url}}"], "path": ["api","v1","applications",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"event\": {{event_id}},\n    \"cat\": 1,\n    \"message_text\": \"Сама себе.\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Validation error (400)', () => pm.response.to.have.status(400));"
+      ] } }]
+    },
+    {
+      "name": "08. Applications: bob duplicates → 400 (negative)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bob_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/applications/", "host": ["{{base_url}}"], "path": ["api","v1","applications",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"event\": {{event_id}},\n    \"cat\": 3,\n    \"message_text\": \"Ещё раз?\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Duplicate error (400)', () => pm.response.to.have.status(400));"
+      ] } }]
+    },
+    {
+      "name": "09. Dialog: alice reads messages",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{alice_token}}" }],
+        "url": { "raw": "{{base_url}}/api/v1/dialogs/{{dialog_id}}/messages/", "host": ["{{base_url}}"], "path": ["api","v1","dialogs","{{dialog_id}}","messages",""] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('First message present (auto-created from signal)', () => pm.expect(pm.response.json().count).to.be.at.least(1));"
+      ] } }]
+    },
+    {
+      "name": "10. Dialog: alice replies",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{alice_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/dialogs/{{dialog_id}}/messages/", "host": ["{{base_url}}"], "path": ["api","v1","dialogs","{{dialog_id}}","messages",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"text\": \"Здорово, ждём вас! Возьмите с собой воду для Мурзика.\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Message sent (201)', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('alice_message_id', pm.response.json().id);"
+      ] } }]
+    },
+    {
+      "name": "11. Auth: charlie register + JWT",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/auth/users/", "host": ["{{base_url}}"], "path": ["api","v1","auth","users",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"username\": \"charlie\",\n    \"password\": \"P@ssw0rd!2026Long\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('User created (201) or already exists (400)', () => pm.expect([201, 400]).to.include(pm.response.code));",
+        "pm.sendRequest({ url: pm.collectionVariables.get('base_url') + '/api/v1/auth/jwt/create/', method: 'POST', header: {'Content-Type': 'application/json'}, body: { mode: 'raw', raw: JSON.stringify({username:'charlie', password:'P@ssw0rd!2026Long'})}}, (err, jwtResp) => { if (!err) pm.collectionVariables.set('charlie_token', jwtResp.json().access); });"
+      ] } }]
+    },
+    {
+      "name": "12. Dialog: charlie tries foreign dialog → 404 (negative)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{charlie_token}}" }],
+        "url": { "raw": "{{base_url}}/api/v1/dialogs/{{dialog_id}}/messages/", "host": ["{{base_url}}"], "path": ["api","v1","dialogs","{{dialog_id}}","messages",""] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Not found for outsider (404)', () => pm.response.to.have.status(404));"
+      ] } }]
+    },
+    {
+      "name": "13. Messages: bob marks alice's message as read (custom action)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{bob_token}}" }],
+        "url": { "raw": "{{base_url}}/api/v1/messages/{{alice_message_id}}/mark_read/", "host": ["{{base_url}}"], "path": ["api","v1","messages","{{alice_message_id}}","mark_read",""] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Mark read (200)', () => pm.response.to.have.status(200));",
+        "pm.test('is_read=true', () => pm.expect(pm.response.json().is_read).to.eql(true));"
+      ] } }]
+    },
+    {
+      "name": "14. Applications: alice approves (custom action set_status)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{alice_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/applications/{{application_id}}/set_status/", "host": ["{{base_url}}"], "path": ["api","v1","applications","{{application_id}}","set_status",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"status\": \"approved\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Approved (200)', () => pm.response.to.have.status(200));",
+        "pm.test('status == approved', () => pm.expect(pm.response.json().status).to.eql('approved'));"
+      ] } }]
+    },
+    {
+      "name": "15. Dialog: bob writes to closed dialog → 403 (negative)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{bob_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/v1/dialogs/{{dialog_id}}/messages/", "host": ["{{base_url}}"], "path": ["api","v1","dialogs","{{dialog_id}}","messages",""] },
+        "body": { "mode": "raw", "raw": "{\n    \"text\": \"Спасибо!\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Forbidden (403)', () => pm.response.to.have.status(403));"
+      ] } }]
+    },
+    {
+      "name": "16. Applications: filter by status=approved",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{alice_token}}" }],
+        "url": {
+          "raw": "{{base_url}}/api/v1/applications/?status=approved&ordering=-created_at",
+          "host": ["{{base_url}}"], "path": ["api","v1","applications",""],
+          "query": [
+            { "key": "status", "value": "approved" },
+            { "key": "ordering", "value": "-created_at" }
+          ]
+        }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('Result has at least 1 approved', () => pm.expect(pm.response.json().count).to.be.at.least(1));"
+      ] } }]
+    },
+    {
+      "name": "17. Events: nested applications list (organizer view)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{alice_token}}" }],
+        "url": {
+          "raw": "{{base_url}}/api/v1/events/{{event_id}}/applications/",
+          "host": ["{{base_url}}"], "path": ["api","v1","events","{{event_id}}","applications",""]
+        }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));"
+      ] } }]
+    }
+  ]
+}
