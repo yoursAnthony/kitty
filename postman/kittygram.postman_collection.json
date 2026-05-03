@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "Kittygram API",
+    "description": "Учебная коллекция для проверки REST API Kittygram. Включает регистрацию, JWT, CRUD котов, загрузку фото и негативные кейсы.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "5c1f0f4e-3a3a-4a4a-8b8b-1234567890ab"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "cat_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{access_token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "01. Auth: Register user (alice)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/auth/users/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "users", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"alice\",\n    \"password\": \"P@ssw0rd!2026Long\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User created (201) or already exists (400)', () => {",
+              "    pm.expect([201, 400]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Auth: JWT create (alice)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/auth/jwt/create/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "jwt", "create", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"alice\",\n    \"password\": \"P@ssw0rd!2026Long\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('JWT issued (200)', () => pm.response.to.have.status(200));",
+              "const tokens = pm.response.json();",
+              "pm.collectionVariables.set('access_token', tokens.access);",
+              "pm.collectionVariables.set('refresh_token', tokens.refresh);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Auth: Get current user",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/api/v1/auth/users/me/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "users", "me", ""] }
+      }
+    },
+    {
+      "name": "04. Cats: List (public, paginated)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/api/v1/cats/?page=1&page_size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", ""], "query": [{ "key": "page", "value": "1" }, { "key": "page_size", "value": "10" }] }
+      }
+    },
+    {
+      "name": "05. Cats: Create cat (Pushok)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/cats/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Pushok\",\n    \"color\": \"white\",\n    \"birth_year\": 2019,\n    \"description\": \"Усатый, полосатый\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cat created (201)', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('cat_id', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Cats: Retrieve cat",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/api/v1/cats/{{cat_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", "{{cat_id}}", ""] }
+      }
+    },
+    {
+      "name": "07. Cats: Partial update (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/cats/{{cat_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", "{{cat_id}}", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"description\": \"Любит спать на клавиатуре\"\n}"
+        }
+      }
+    },
+    {
+      "name": "08. Cats: Search and filter",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/v1/cats/?search=push&owner=alice&ordering=-created_at",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "cats", ""],
+          "query": [
+            { "key": "search", "value": "push" },
+            { "key": "owner", "value": "alice" },
+            { "key": "ordering", "value": "-created_at" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "09. Cats: Create — invalid birth_year (negative)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/cats/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"BadYear\",\n    \"color\": \"black\",\n    \"birth_year\": 1800\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Validation error (400)', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Cats: Anonymous POST → 401 (negative)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/v1/cats/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", ""] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Anon\",\n    \"color\": \"red\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Unauthorized (401)', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Tags: List",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/api/v1/tags/", "host": ["{{base_url}}"], "path": ["api", "v1", "tags", ""] }
+      }
+    },
+    {
+      "name": "12. Achievements: List",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/api/v1/achievements/", "host": ["{{base_url}}"], "path": ["api", "v1", "achievements", ""] }
+      }
+    },
+    {
+      "name": "13. Cats: Delete",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{base_url}}/api/v1/cats/{{cat_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "cats", "{{cat_id}}", ""] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Deleted (204)', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
